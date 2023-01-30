@@ -1,5 +1,19 @@
 $VerbosePreference = "Continue"
 
+if (!(Test-Path 'HKCU:\Control Panel\Accessibility\')) {
+  Write-Verbose "Control Panel\Accessibility key does not exist"
+  return
+}
+if (!(Test-Path 'HKCU:\Control Panel\Accessibility\NoWindowsSettings')) {
+  Write-Verbose "NoWindowsSettings key does not exist"
+  return
+}
+if (!(Test-Path 'HKCU:\Control Panel\Accessibility\NoControlPanel')) {
+  Write-Verbose "NoControlPanel key does not exist"
+  return
+}
+
+
 # Function to check the state of the Control Panel and Windows Settings
 Function Check-SettingsState {
   $isControlPanelDisabled = Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoControlPanel"
