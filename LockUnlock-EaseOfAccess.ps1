@@ -1,3 +1,5 @@
+$VerbosePreference = "Continue"
+
 # Function to check the state of the Control Panel and Windows Settings
 Function Check-SettingsState {
   $isControlPanelDisabled = Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoControlPanel"
