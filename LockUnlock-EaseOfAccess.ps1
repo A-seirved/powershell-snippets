@@ -1,35 +1,31 @@
-$ControlPanelKey = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Control Panel\Settings"
-$WindowsSettingsKey = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Settings"
+# Set registry key paths as variables
+$NoCPL = "HKEY_CURRENT_USER\Control Panel\NoCPL"
+$NoSettings = "HKEY_CURRENT_USER\Control Panel\NoSettings"
 
-If (!(Test-Path $ControlPanelKey)) {
-    New-Item -Path $ControlPanelKey -Force | Out-Null
-    New-ItemProperty -Path $ControlPanelKey -Name "NoControlPanel" -Value 1 -PropertyType DWord | Out-Null
+# Create the registry keys if they don't exist and set them to a default state of everything enabled
+if (!(Test-Path $NoCPL)) {
+  New-Item -Path "HKEY_CURRENT_USER\Control Panel" -Name "NoCPL"
+  Set-ItemProperty -Path $NoCPL -Name "0" -Value 0
 }
 
-If (!(Test-Path $WindowsSettingsKey)) {
-    New-Item -Path $WindowsSettingsKey -Force | Out-Null
-    New-ItemProperty -Path $WindowsSettingsKey -Name "NoWindowsSettings" -Value 1 -PropertyType DWord | Out-Null
+if (!(Test-Path $NoSettings)) {
+  New-Item -Path "HKEY_CURRENT_USER\Control Panel" -Name "NoSettings"
+  Set-ItemProperty -Path $NoSettings -Name "0" -Value 0
 }
 
-$ControlPanelValue = Get-ItemPropertyValue -Path $ControlPanelKey -Name "NoControlPanel"
-$WindowsSettingsValue = Get-ItemPropertyValue -Path $WindowsSettingsKey -Name "NoWindowsSettings"
+# Disable everything except the Ease of Access settings
+Set-ItemProperty -Path $NoCPL -Name "0" -Value 1
+Set-ItemProperty -Path $NoSettings -Name "1" -Value 1
 
-If ($ControlPanelValue -eq $WindowsSettingsValue) {
-    If ($ControlPanelValue -ne 0) {
-        Set-ItemProperty -Path $ControlPanelKey -Name "NoControlPanel" -Value 0
-        Set-ItemProperty -Path $WindowsSettingsKey -Name "NoWindowsSettings" -Value 0
-    }
+# Function to resynchronize registry keys
+function ResyncKeys {
+  $NoCPLVal = Get-ItemProperty -Path $NoCPL -Name "0"
+  $NoSettingsVal = Get-ItemProperty -Path $NoSettings -Name "1"
+  if ($NoCPLVal.0 -ne $NoSettingsVal.1) {
+    Set-ItemProperty -Path $NoCPL -Name "0" -Value $NoSettingsVal.1
+    Set-ItemProperty -Path $NoSettings -Name "1" -Value $NoCPLVal.0
+  }
 }
-Else {
-    $ControlPanelValue = Get-ItemPropertyValue -Path $ControlPanelKey -Name "NoControlPanel"
-    $WindowsSettingsValue = Get-ItemPropertyValue -Path $WindowsSettingsKey -Name "NoWindowsSettings"
 
-    If ($ControlPanelValue -ne $WindowsSettingsValue) {
-        If ($ControlPanelValue -ne 0) {
-            Set-ItemProperty -Path $ControlPanelKey -Name "NoControlPanel" -Value $WindowsSettingsValue
-        }
-        If ($WindowsSettingsValue -ne 0) {
-            Set-ItemProperty -Path $WindowsSettingsKey -Name "NoWindowsSettings" -Value $ControlPanelValue
-        }
-    }
-}
+# Call the resynchronization function
+ResyncKeys
