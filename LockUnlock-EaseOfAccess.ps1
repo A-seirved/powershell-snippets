@@ -1,31 +1,41 @@
-# Set the registry key paths
-$controlPanelKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer"
-$settingsKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System"
+$registryPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
+$NoControlPanel = "NoControlPanel"
+$NoWindowsSettings = "NoWindowsSettings"
+$EaseOfAccess = "NoSettingsApp"
 
-# Check if the keys exist, if not create them with default values
-if (!(Test-Path $controlPanelKey)) {
-  New-Item -Path $controlPanelKey -Force | Out-Null
-  New-ItemProperty -Path $controlPanelKey -Name "NoControlPanel" -Value 0 -PropertyType DWORD -Force | Out-Null
+$NoControlPanelValue = Get-ItemProperty -Path $registryPath -Name $NoControlPanel
+$NoWindowsSettingsValue = Get-ItemProperty -Path $registryPath -Name $NoWindowsSettings
+
+if (!(Test-Path -Path $registryPath)) {
+    New-Item -Path $registryPath -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name $NoControlPanel -Value 1 -PropertyType DWORD -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name $NoWindowsSettings -Value 1 -PropertyType DWORD -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name $EaseOfAccess -Value 0 -PropertyType DWORD -Force | Out-Null
+} else {
+    if ($NoControlPanelValue -eq $null) {
+        New-ItemProperty -Path $registryPath -Name $NoControlPanel -Value 1 -PropertyType DWORD -Force | Out-Null
+    } else {
+        Set-ItemProperty -Path $registryPath -Name $NoControlPanel -Value 1
+    }
+    if ($NoWindowsSettingsValue -eq $null) {
+        New-ItemProperty -Path $registryPath -Name $NoWindowsSettings -Value 1 -PropertyType DWORD -Force | Out-Null
+    } else {
+        Set-ItemProperty -Path $registryPath -Name $NoWindowsSettings -Value 1
+    }
+    if ($EaseOfAccessValue -eq $null) {
+        New-ItemProperty -Path $registryPath -Name $EaseOfAccess -Value 0 -PropertyType DWORD -Force | Out-Null
+    } else {
+        Set-ItemProperty -Path $registryPath -Name $EaseOfAccess -Value 0
+    }
 }
-if (!(Test-Path $settingsKey)) {
-  New-Item -Path $settingsKey -Force | Out-Null
-  New-ItemProperty -Path $settingsKey -Name "NoWindowsSettings" -Value 0 -PropertyType DWORD -Force | Out-Null
-}
 
-# Disable everything but Ease of Access
-Set-ItemProperty -Path $controlPanelKey -Name "NoControlPanel" -Value 1
-Set-ItemProperty -Path $settingsKey -Name "NoWindowsSettings" -Value 1
+$NoControlPanelCheck = Get-ItemProperty -Path $registryPath -Name $NoControlPanel
+$NoWindowsSettingsCheck = Get-ItemProperty -Path $registryPath -Name $NoWindowsSettings
+$EaseOfAccessCheck = Get-ItemProperty -Path $registryPath -Name $EaseOfAccess
 
-# Function to resync the registry keys
-function Resync {
-  # Get the values of the registry keys
-  $controlPanelValue = (Get-ItemProperty -Path $controlPanelKey).NoControlPanel
-  $settingsValue = (Get-ItemProperty -Path $settingsKey).NoWindowsSettings
-
-  # Check if the values are not in sync
-  if ($controlPanelValue -ne $settingsValue) {
-    # Set both values to the same value
-    Set-ItemProperty -Path $controlPanelKey -Name "NoControlPanel" -Value $settingsValue
-    Set-ItemProperty -Path $settingsKey -Name "NoWindowsSettings" -Value $settingsValue
-  }
+if ($NoControlPanelCheck.NoControlPanel -ne 1 -or $NoWindowsSettingsCheck.NoWindowsSettings -ne 1 -or $EaseOfAccessCheck.EaseOfAccess -ne 0) {
+    Write-Output "Registry keys are out of sync. Running resync procedure."
+    Set-ItemProperty -Path $registryPath -Name $NoControlPanel -Value 1
+    Set-ItemProperty -Path $registryPath -Name $NoWindowsSettings -Value 1
+    Set-ItemProperty -Path $registryPath -Name $EaseOfAccess -Value 0
 }
